@@ -1,110 +1,50 @@
+import java.util.Random;
 import java.util.concurrent.Semaphore;
 
 public class Aluno extends Thread{
-
-    public static int comeu = 0;
     private final String nome;
     private final Semaphore semaforo;
     private final Prateleira prateleira;
+    private final Cozinheiro cozinheiro;
+    Random random = new Random();
 
-    public Aluno(String nome, Semaphore semaforo, Prateleira prateleira) {
+    public Aluno(String nome, Semaphore semaforo, Prateleira prateleira, Cozinheiro cozinheiro) {
         super(nome);
         this.semaforo = semaforo;
         this.nome = nome;
         this.prateleira = prateleira;
+        this.cozinheiro = cozinheiro;
     }
 
     @Override
     public void run() {
-        // run by thread A
-        if (this.getName().equals("Teilor")) {
-            System.out.println("Starting " + nome);
+        pegarBatata();
+    }
+
+    private void pegarBatata() {
+        while (true) {
             try {
-                // First, get a permit.
-                System.out.println(nome + " is waiting for a permit.");
-
-                // acquiring the lock
                 semaforo.acquire();
-
-                System.out.println(nome + " gets a permit.");
-
-                // Now, accessing the shared resource.
-                // other waiting threads will wait, until this
-                // thread release the lock
-                for (int i = 0; i < 5; i++) {
-                    prateleira.quantidadeDeBatatas = -1;
-                    System.out.println(nome + "comeu uma batata frita");
-
-                    // Now, allowing a context switch -- if possible.
-                    // for thread B to execute
-                    Thread.sleep(10);
+                if (prateleira.getQuantidadeDeBatatas() > 0 && Boolean.FALSE.equals(cozinheiro.cozinhando)){
+                    prateleira.quantidadeDeBatatas -= 1;
+                    System.out.println("\u001B[35m" + nome + " pega uma batata frita. | Batatas restantes = " + prateleira.getQuantidadeDeBatatas());
+                    semaforo.release();
+                    sleep(random.nextInt(5001));
+                }else if (Boolean.FALSE.equals(cozinheiro.cozinhando) && prateleira.quantidadeDeBatatas == 0){
+                    System.out.println("\u001B[31m" + "Aluno(a) " + nome + " tenta comer batata mas não encontra nada. Então grita: COZINHEIRO!!!");
+                    if (!cozinheiro.isAlive()){
+                        cozinheiro.run();
+                    }
+                    sleep(cozinheiro.segundos+500);
+                    semaforo.release();
                 }
-            } catch (InterruptedException exc) {
-                System.out.println(exc);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
-
-            // Release the permit.
-            System.out.println(nome + " releases the permit.");
-            semaforo.release();
-        }
-
-        // run by thread B
-        else if (this.getName().equals("Pedro")){
-            System.out.println("Starting " + nome);
-            try {
-                // First, get a permit.
-                System.out.println(nome + " is waiting for a permit.");
-
-                // acquiring the lock
-                semaforo.acquire();
-
-                System.out.println(nome + " gets a permit.");
-
-                // Now, accessing the shared resource.
-                // other waiting threads will wait, until this
-                // thread release the lock
-                for (int i = 0; i < 5; i++) {
-                    prateleira.quantidadeDeBatatas = -1;
-                    System.out.println(nome + "comeu uma batata frita");
-
-                    // Now, allowing a context switch -- if possible.
-                    // for thread A to execute
-                    Thread.sleep(10);
-                }
-            } catch (InterruptedException exc) {
-                System.out.println(exc);
+            if (prateleira.getQuantidadeDeBatatas() == 0 && cozinheiro.vontadeDeFritar == 0){
+                System.out.println("\u001B[31m" + "Aluno(a) " + nome + " berra em completo desespero: 'MEU DEUS QUEM DEIXOU O COZINHEIRO FUGIR ????' e logo apos morre de fome...");
+                break;
             }
-            // Release the permit.
-            System.out.println(nome + " releases the permit.");
-            semaforo.release();
-        }else{
-            System.out.println("Starting " + nome);
-            try {
-                // First, get a permit.
-                System.out.println(nome + " is waiting for a permit.");
-
-                // acquiring the lock
-                semaforo.acquire();
-
-                System.out.println(nome + " gets a permit.");
-
-                // Now, accessing the shared resource.
-                // other waiting threads will wait, until this
-                // thread release the lock
-                for (int i = 0; i < 5; i++) {
-                    prateleira.quantidadeDeBatatas = -1;
-                    System.out.println(nome + "comeu uma batata frita");
-
-                    // Now, allowing a context switch -- if possible.
-                    // for thread A to execute
-                    Thread.sleep(10);
-                }
-            } catch (InterruptedException exc) {
-                System.out.println(exc);
-            }
-            // Release the permit.
-            System.out.println(nome + " releases the permit.");
-            semaforo.release();
         }
     }
 }
